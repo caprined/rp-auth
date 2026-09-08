@@ -18,7 +18,14 @@ interface QueueJob {
   total_count: number;
   done_count: number;
   failed_count: number;
+  pending_count: number;
   target_guild_id: string;
+}
+
+interface LastError {
+  discord_id: string;
+  last_error: string;
+  updated_at: string;
 }
 
 export default function PanelDashboard() {
@@ -28,6 +35,7 @@ export default function PanelDashboard() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<QueueJob | null>(null);
+  const [lastError, setLastError] = useState<LastError | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [targetGuildId, setTargetGuildId] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
@@ -50,6 +58,7 @@ export default function PanelDashboard() {
     if (res.ok) {
       const data = await res.json();
       setJob(data.job ?? null);
+      setLastError(data.lastError ?? null);
     }
   }, []);
 
@@ -113,6 +122,13 @@ export default function PanelDashboard() {
             Wyloguj
           </button>
         </header>
+
+        {job?.status === 'running' && job.failed_count > 0 && lastError && (
+          <div className="mb-4 rounded-xl border border-danger/40 bg-danger/10 p-3 text-xs text-danger">
+            <span className="font-medium">{job.failed_count}</span> {job.failed_count === 1 ? 'osoba nie dodała się' : 'osób nie dodało się'} do serwera.
+            Ostatni błąd (<span className="mono">{lastError.discord_id}</span>): {lastError.last_error}
+          </div>
+        )}
 
         <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-border1 bg-surface1 p-4">

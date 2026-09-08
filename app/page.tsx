@@ -38,7 +38,7 @@ export default async function Page({
   const discordAuthorizeUrl = buildAuthorizeUrlStatic();
 
   return (
-    <main className="flex h-screen items-center justify-center px-4">
+    <main className="no-scroll-page flex items-center justify-center px-4">
       <TopBar />
       <AuthFlow
         hasPendingVerification={hasPendingVerification}
