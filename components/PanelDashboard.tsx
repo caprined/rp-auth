@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { LogOut, Search, Users, RefreshCw, Send, X } from 'lucide-react';
+import { LogOut, Search, Users, RefreshCw, Send, X, Square } from 'lucide-react';
+import { discordAvatarUrl, relativeTimePl } from '../lib/format';
 
 interface VerifiedUser {
   discord_id: string;
   username: string;
   global_name: string | null;
+  avatar_hash: string | null;
   verified_at: string;
 }
 
@@ -70,6 +72,11 @@ export default function PanelDashboard() {
     window.location.href = '/desc/login';
   }
 
+  async function handleCancelQueue() {
+    await fetch('/api/admin/queue/cancel', { method: 'POST' });
+    loadJobStatus();
+  }
+
   async function handleStartQueue() {
     setModalError(null);
     if (!/^[0-9]{15,25}$/.test(targetGuildId)) {
@@ -118,14 +125,23 @@ export default function PanelDashboard() {
               {job ? (job.status === 'running' ? `${job.done_count}/${job.total_count}` : 'brak') : '—'}
             </p>
           </div>
-          <button
-            onClick={() => setModalOpen(true)}
-            disabled={job?.status === 'running'}
-            className="accent-gradient col-span-2 flex items-center justify-center gap-2 rounded-xl p-4 text-sm font-medium text-white disabled:opacity-50 md:col-span-1"
-          >
-            <Send className="h-4 w-4" />
-            Dodaj wszystkich na nowy serwer
-          </button>
+          {job?.status === 'running' ? (
+            <button
+              onClick={handleCancelQueue}
+              className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-danger p-4 text-sm font-medium text-danger md:col-span-1"
+            >
+              <Square className="h-4 w-4" />
+              Przerwij kolejkę
+            </button>
+          ) : (
+            <button
+              onClick={() => setModalOpen(true)}
+              className="accent-gradient col-span-2 flex items-center justify-center gap-2 rounded-xl p-4 text-sm font-medium text-white md:col-span-1"
+            >
+              <Send className="h-4 w-4" />
+              Dodaj wszystkich na nowy serwer
+            </button>
+          )}
         </div>
 
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-border1 bg-surface1 px-3">
@@ -169,10 +185,21 @@ export default function PanelDashboard() {
               {!loading &&
                 users.map((u) => (
                   <tr key={u.discord_id} className="border-b border-border1 last:border-0">
-                    <td className="px-4 py-3">{u.global_name ?? u.username}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={discordAvatarUrl(u.discord_id, u.avatar_hash)}
+                          alt=""
+                          className="h-7 w-7 rounded-full"
+                        />
+                        {u.global_name ?? u.username}
+                      </div>
+                    </td>
                     <td className="mono px-4 py-3 text-textSecondary">{u.discord_id}</td>
-                    <td className="px-4 py-3 text-textSecondary">
-                      {new Date(u.verified_at).toLocaleString('pl-PL')}
+                    <td className="px-4 py-3">
+                      <div>{new Date(u.verified_at).toLocaleString('pl-PL')}</div>
+                      <div className="text-xs text-textMuted">{relativeTimePl(u.verified_at)}</div>
                     </td>
                   </tr>
                 ))}

@@ -14,6 +14,11 @@ export function buildAuthorizeUrl(state: string): string {
   return `https://discord.com/api/oauth2/authorize?${params.toString()}`;
 }
 
+// Stały link uzywany na przycisku "Zweryfikuj sie" na Discordzie i jako link "ponow" w UI.
+export function buildAuthorizeUrlStatic(): string {
+  return buildAuthorizeUrl(env.verifyStaticState());
+}
+
 export interface DiscordTokenResponse {
   access_token: string;
   refresh_token: string;

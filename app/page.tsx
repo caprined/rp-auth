@@ -1,7 +1,9 @@
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import AuthFlow from '../components/AuthFlow';
+import TopBar from '../components/TopBar';
 import { PV_COOKIE } from '../lib/constants';
+import { buildAuthorizeUrlStatic } from '../lib/discord';
 
 const ERROR_MESSAGES: Record<string, string> = {
   rate_limited: 'Zbyt wiele prób. Spróbuj ponownie za chwilę.',
@@ -33,13 +35,16 @@ export default async function Page({
 
   const errorMessage = searchParams.error ? ERROR_MESSAGES[searchParams.error] ?? ERROR_MESSAGES.internal_error : null;
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+  const discordAuthorizeUrl = buildAuthorizeUrlStatic();
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
+    <main className="flex h-screen items-center justify-center px-4">
+      <TopBar />
       <AuthFlow
         hasPendingVerification={hasPendingVerification}
         initialError={errorMessage}
         turnstileSiteKey={siteKey}
+        discordAuthorizeUrl={discordAuthorizeUrl}
       />
     </main>
   );
