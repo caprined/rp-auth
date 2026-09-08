@@ -23,26 +23,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${env.authBaseUrl()}/?error=invalid_request`);
   }
 
-  const db = supabaseAdmin();
-  const { data: stateRow, error: stateError } = await db
-    .from('oauth_states')
-    .select('state, expires_at, used, purpose')
-    .eq('state', state)
-    .maybeSingle();
-
-  if (
-    stateError ||
-    !stateRow ||
-    stateRow.used ||
-    stateRow.purpose !== 'verify' ||
-    new Date(stateRow.expires_at as string).getTime() < Date.now()
-  ) {
+  // Link jest STALY (permanentny przycisk na Discordzie) - state to nie jednorazowy token z bazy,
+  // tylko staly, znany tylko nam sekret wpisany w URL przycisku. Odsiewa to przypadkowe/losowe
+  // trafienia na ten endpoint, ale nie jest tokenem jednorazowym - jednorazowosc i tak zapewnia
+  // Discord: `code` jest wazny tylko raz i jest nierozerwalnie zwiazany z kontem, ktore go wydalo,
+  // wiec nikt nie podrobi cudzej weryfikacji nawet znajac state.
+  if (state !== env.verifyStaticState()) {
     return NextResponse.redirect(`${env.authBaseUrl()}/?error=expired_or_invalid`);
   }
 
-  // Jednorazowość: state jest oznaczany jako zużyty natychmiast, niezależnie od dalszego wyniku.
-  await db.from('oauth_states').update({ used: true }).eq('state', state);
-
+  const db = supabaseAdmin();
   const pvId = randomToken(24);
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
   const { error: pvError } = await db.from('pending_verifications').insert({

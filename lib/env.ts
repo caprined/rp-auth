@@ -20,5 +20,5 @@ export const env = {
   supabaseUrl: () => required('SUPABASE_URL'),
   supabaseServiceRoleKey: () => required('SUPABASE_SERVICE_ROLE_KEY'),
   internalCronSecret: () => required('INTERNAL_CRON_SECRET'),
-  botInternalSecret: () => required('BOT_INTERNAL_SECRET'), // sekret dzielony z botem discorda
+  verifyStaticState: () => required('VERIFY_STATIC_STATE'), // stały string wpisany też w link przycisku na Discordzie
 };
