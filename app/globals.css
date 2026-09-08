@@ -55,7 +55,7 @@ main {
     var(--accent-from)
   );
   background-size: 400% 400%;
-  animation: gradientLoop 2.5s ease-in-out infinite;
+  animation: gradientLoop 1.1s ease-in-out infinite;
 }
 
 @keyframes gradientLoop {

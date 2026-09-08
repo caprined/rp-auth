@@ -1,4 +1,4 @@
-import { Home, MessageCircle } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 export default function TopBar() {
   return (
@@ -11,17 +11,17 @@ export default function TopBar() {
       <div className="flex items-center gap-2">
         <a
           href="https://realizatorzy.lol"
-          className="flex items-center gap-1.5 rounded-lg border border-border1 px-3 py-1.5 text-xs text-textSecondary hover:border-borderStrong hover:text-textPrimary"
+          aria-label="Strona główna"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-textSecondary hover:text-textPrimary"
         >
-          <Home className="h-3.5 w-3.5" />
-          Home
+          <Home className="h-4 w-4" />
         </a>
         <a
           href="https://discord.gg/realizatorzy"
-          className="accent-gradient flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
+          aria-label="Dołącz na Discord"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-textSecondary hover:text-textPrimary"
         >
-          <MessageCircle className="h-3.5 w-3.5" />
-          Dołącz na Discord
+          <i className="fa-brands fa-discord text-base" />
         </a>
       </div>
     </header>
