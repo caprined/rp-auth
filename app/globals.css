@@ -55,7 +55,7 @@ main {
     var(--accent-from)
   );
   background-size: 400% 400%;
-  animation: gradientLoop 0.667s linear infinite;
+  animation: gradientLoop 2.2s ease-in-out infinite;
 }
 
 @keyframes gradientLoop {
@@ -74,7 +74,7 @@ main {
   width: 6px;
   height: 6px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.9);
+  background: currentColor;
   animation: dotShimmer 1.2s ease-in-out infinite;
 }
 .loading-dots span:nth-child(2) { animation-delay: 0.15s; }

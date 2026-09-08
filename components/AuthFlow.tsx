@@ -32,6 +32,7 @@ export default function AuthFlow({
   const [status, setStatus] = useState<Status>(hasPendingVerification ? 'idle' : 'no_pending');
   const [errorMessage, setErrorMessage] = useState<string | null>(initialError);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [retryVariant, setRetryVariant] = useState<'primary' | 'secondary'>('primary');
   const widgetRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
   const infoWrapRef = useRef<HTMLDivElement>(null);
@@ -56,6 +57,9 @@ export default function AuthFlow({
 
   function handleGoToDiscord(e: React.MouseEvent) {
     e.preventDefault();
+    // Pamietamy z jakiego stylu przycisku wchodzimy w stan "redirecting" - szary przycisk
+    // (sukces/blad) ma ZOSTAC szary w trakcie ladowania, kolorowy ma zostac kolorowy.
+    setRetryVariant(status === 'success' || status === 'error' ? 'secondary' : 'primary');
     setStatus('redirecting');
     window.location.href = discordAuthorizeUrl;
   }
@@ -112,12 +116,19 @@ export default function AuthFlow({
   // Jeden, ten sam <button> dla kazdego stanu tekstu/linku - zmieniamy tylko klasy i zawartosc,
   // NIGDY nie podmieniamy go na inny element, zeby nie bylo remountu (a wiec i migniecia).
   let buttonLabel: React.ReactNode;
+  // h-12 na stale - niezaleznie od tego co jest w srodku (tekst+ikonka czy male kropki),
+  // wysokosc przycisku sie nie zmienia. transition-all zeby zmiana tla/obramowania byla plynna,
+  // a nie "skokowa" przy przejsciu z przycisku obramowanego na gradientowy i odwrotnie.
   let buttonClass =
-    'flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium';
+    'flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium transition-all duration-300';
   let onButtonClick: ((e: React.MouseEvent) => void) | undefined;
 
   if (isBusy) {
-    buttonClass += ' accent-gradient-animated text-white';
+    if (status === 'loading' || retryVariant === 'primary') {
+      buttonClass += ' accent-gradient-animated text-white';
+    } else {
+      buttonClass += ' border border-border1 text-textSecondary';
+    }
     buttonLabel = (
       <span className="loading-dots">
         <span />
