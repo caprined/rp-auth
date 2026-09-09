@@ -66,7 +66,10 @@ export async function POST(req: NextRequest) {
       .in('status', ['pending', 'processing', 'rate_limited']);
 
     if (!stillPending) {
-      await db.from('join_queue_jobs').update({ status: 'done' }).eq('id', jobId);
+      await db
+        .from('join_queue_jobs')
+        .update({ status: 'done', completed_at: new Date().toISOString() })
+        .eq('id', jobId);
       return NextResponse.json({ ok: true, message: 'job_completed' });
     }
     return NextResponse.json({ ok: true, message: 'nothing_ready_yet' });

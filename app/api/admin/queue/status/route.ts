@@ -12,10 +12,14 @@ export async function GET(req: NextRequest) {
   const db = supabaseAdmin();
 
   const jobQuery = requestedJobId
-    ? db.from('join_queue_jobs').select('id, status, total_count, target_guild_id, created_at').eq('id', requestedJobId).maybeSingle()
+    ? db
+        .from('join_queue_jobs')
+        .select('id, status, total_count, target_guild_id, created_at, completed_at')
+        .eq('id', requestedJobId)
+        .maybeSingle()
     : db
         .from('join_queue_jobs')
-        .select('id, status, total_count, target_guild_id, created_at')
+        .select('id, status, total_count, target_guild_id, created_at, completed_at')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -29,20 +33,10 @@ export async function GET(req: NextRequest) {
   }
   const jobId = job.id as string;
 
-  // Liczymy na zywo z rzeczywistych rekordow zamiast trzymac osobny, latwy do rozjechania
-  // sie licznik - to jest zrodlo prawdy, nie moze sklamac nawet jesli wczesniej cos padlo.
-  const [{ count: doneCount }, { count: failedCount }, { count: pendingCount }, { data: lastFailed }] =
+  const [{ count: doneCount }, { count: failedCount }, { count: pendingCount }, { data: lastFailed }, { data: allFailed }] =
     await Promise.all([
-      db
-        .from('join_queue_items')
-        .select('id', { count: 'exact', head: true })
-        .eq('job_id', jobId)
-        .eq('status', 'done'),
-      db
-        .from('join_queue_items')
-        .select('id', { count: 'exact', head: true })
-        .eq('job_id', jobId)
-        .eq('status', 'failed'),
+      db.from('join_queue_items').select('id', { count: 'exact', head: true }).eq('job_id', jobId).eq('status', 'done'),
+      db.from('join_queue_items').select('id', { count: 'exact', head: true }).eq('job_id', jobId).eq('status', 'failed'),
       db
         .from('join_queue_items')
         .select('id', { count: 'exact', head: true })
@@ -56,7 +50,21 @@ export async function GET(req: NextRequest) {
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      db.from('join_queue_items').select('last_error').eq('job_id', jobId).eq('status', 'failed'),
     ]);
+
+  // Rozbicie bledow na kategorie z liczba wystapien kazdej - do podsumowania po zakonczeniu.
+  const errorBreakdown: Record<string, number> = {};
+  for (const row of allFailed ?? []) {
+    const key = (row.last_error as string) || 'nieznany_blad';
+    errorBreakdown[key] = (errorBreakdown[key] ?? 0) + 1;
+  }
+
+  const createdAt = job.created_at as string;
+  const completedAt = job.completed_at as string | null;
+  const durationSeconds = completedAt
+    ? Math.round((new Date(completedAt).getTime() - new Date(createdAt).getTime()) / 1000)
+    : null;
 
   return NextResponse.json({
     job: {
@@ -67,7 +75,11 @@ export async function GET(req: NextRequest) {
       done_count: doneCount ?? 0,
       failed_count: failedCount ?? 0,
       pending_count: pendingCount ?? 0,
+      created_at: createdAt,
+      completed_at: completedAt,
+      duration_seconds: durationSeconds,
     },
     lastError: lastFailed ?? null,
+    errorBreakdown,
   });
 }

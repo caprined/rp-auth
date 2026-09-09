@@ -8,6 +8,25 @@ export function discordAvatarUrl(discordId: string, avatarHash: string | null): 
   return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
 }
 
+export function formatDuration(totalSeconds: number): string {
+  if (totalSeconds < 60) return `${totalSeconds} s`;
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h} godz. ${m} min`;
+  if (s === 0) return `${m} min`;
+  return `${m} min ${s} s`;
+}
+
+export const ERROR_LABELS_PL: Record<string, string> = {
+  user_not_found: 'Nie znaleziono użytkownika w bazie',
+  join_failed_status_not_ok: 'Discord odrzucił dołączenie (np. bot nie jest na serwerze docelowym)',
+  token_refresh_failed: 'Nie udało się odświeżyć tokenu (użytkownik cofnął autoryzację aplikacji)',
+};
+
+export function errorLabelPl(key: string): string {
+  return ERROR_LABELS_PL[key] ?? key;
+}
 export function relativeTimePl(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const diffSec = Math.floor(diffMs / 1000);

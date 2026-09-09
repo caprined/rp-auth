@@ -19,6 +19,9 @@ export async function POST() {
     return NextResponse.json({ error: 'no_running_job' }, { status: 404 });
   }
 
-  await db.from('join_queue_jobs').update({ status: 'cancelled' }).eq('id', running.id as string);
+  await db
+    .from('join_queue_jobs')
+    .update({ status: 'cancelled', completed_at: new Date().toISOString() })
+    .eq('id', running.id as string);
   return NextResponse.json({ ok: true });
 }

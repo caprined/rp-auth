@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { LogOut, Search, Users, RefreshCw, Send, X, Square } from 'lucide-react';
-import { discordAvatarUrl, relativeTimePl } from '../lib/format';
+import { discordAvatarUrl, relativeTimePl, formatDuration, errorLabelPl } from '../lib/format';
 
 interface VerifiedUser {
   discord_id: string;
@@ -20,6 +20,9 @@ interface QueueJob {
   failed_count: number;
   pending_count: number;
   target_guild_id: string;
+  created_at: string;
+  completed_at: string | null;
+  duration_seconds: number | null;
 }
 
 interface LastError {
@@ -36,6 +39,8 @@ export default function PanelDashboard() {
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<QueueJob | null>(null);
   const [lastError, setLastError] = useState<LastError | null>(null);
+  const [errorBreakdown, setErrorBreakdown] = useState<Record<string, number>>({});
+  const [summaryDismissed, setSummaryDismissed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [targetGuildId, setTargetGuildId] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
@@ -59,6 +64,7 @@ export default function PanelDashboard() {
       const data = await res.json();
       setJob(data.job ?? null);
       setLastError(data.lastError ?? null);
+      setErrorBreakdown(data.errorBreakdown ?? {});
     }
   }, []);
 
@@ -104,6 +110,7 @@ export default function PanelDashboard() {
     }
     setModalOpen(false);
     setTargetGuildId('');
+    setSummaryDismissed(false);
     loadJobStatus();
   }
 
@@ -122,6 +129,52 @@ export default function PanelDashboard() {
             Wyloguj
           </button>
         </header>
+
+        {job && (job.status === 'done' || job.status === 'cancelled') && !summaryDismissed && (
+          <div className="mb-6 rounded-xl border border-border1 bg-surface1 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-medium">
+                {job.status === 'done' ? 'Podsumowanie zakończonej kolejki' : 'Kolejka przerwana'}
+              </h2>
+              <button onClick={() => setSummaryDismissed(true)} className="text-textMuted hover:text-textSecondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-lg bg-surface2 p-3">
+                <p className="text-xs text-textMuted">Łącznie</p>
+                <p className="mt-0.5 text-lg font-medium">{job.total_count}</p>
+              </div>
+              <div className="rounded-lg bg-surface2 p-3">
+                <p className="text-xs text-textMuted">Dodano poprawnie</p>
+                <p className="mt-0.5 text-lg font-medium text-success">{job.done_count}</p>
+              </div>
+              <div className="rounded-lg bg-surface2 p-3">
+                <p className="text-xs text-textMuted">Błędy</p>
+                <p className="mt-0.5 text-lg font-medium text-danger">{job.failed_count}</p>
+              </div>
+              <div className="rounded-lg bg-surface2 p-3">
+                <p className="text-xs text-textMuted">Czas trwania</p>
+                <p className="mt-0.5 text-lg font-medium">
+                  {job.duration_seconds !== null ? formatDuration(job.duration_seconds) : '—'}
+                </p>
+              </div>
+            </div>
+            {Object.keys(errorBreakdown).length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs text-textMuted">Rodzaje błędów:</p>
+                <ul className="space-y-1 text-xs text-textSecondary">
+                  {Object.entries(errorBreakdown).map(([key, count]) => (
+                    <li key={key} className="flex justify-between gap-3 rounded-lg bg-surface2 px-3 py-2">
+                      <span>{errorLabelPl(key)}</span>
+                      <span className="mono shrink-0 text-textMuted">{count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         {job?.status === 'running' && job.failed_count > 0 && lastError && (
           <div className="mb-4 rounded-xl border border-danger/40 bg-danger/10 p-3 text-xs text-danger">
