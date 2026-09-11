@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { LogOut, Search, Users, RefreshCw, Send, X, Square, Map, Table } from 'lucide-react';
+import { LogOut, Search, Users, RefreshCw, Send, X, Square, Map, Table, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import MapView from './MapView';
 import { discordAvatarUrl, relativeTimePl, formatDuration, errorLabelPl } from '../lib/format';
 
@@ -40,6 +40,11 @@ export default function PanelDashboard() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [view, setView] = useState<'users' | 'map'>('users');
+  const [sortBy, setSortBy] = useState<'verified_at' | 'username' | 'discord_id'>('verified_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d'>('all');
+  const [countries, setCountries] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<QueueJob | null>(null);
@@ -50,18 +55,42 @@ export default function PanelDashboard() {
   const [targetGuildId, setTargetGuildId] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
 
-  const loadUsers = useCallback(async (p: number, s: string) => {
-    setLoading(true);
-    const params = new URLSearchParams({ page: String(p) });
-    if (s) params.set('search', s);
-    const res = await fetch(`/api/admin/users?${params.toString()}`);
-    if (res.ok) {
-      const data = await res.json();
-      setUsers(data.users ?? []);
-      setTotal(data.total ?? 0);
+  const loadUsers = useCallback(
+    async (p: number, s: string, sBy: string, sDir: string, country: string, dateF: string) => {
+      setLoading(true);
+      const params = new URLSearchParams({ page: String(p), sortBy: sBy, sortDir: sDir });
+      if (s) params.set('search', s);
+      if (country) params.set('country', country);
+      if (dateF !== 'all') {
+        const days = dateF === '7d' ? 7 : 30;
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+        params.set('dateFrom', cutoff);
+      }
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users ?? []);
+        setTotal(data.total ?? 0);
+      }
+      setLoading(false);
+    },
+    []
+  );
+
+  function handleSort(column: 'verified_at' | 'username' | 'discord_id') {
+    if (sortBy === column) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir(column === 'verified_at' ? 'desc' : 'asc');
     }
-    setLoading(false);
-  }, []);
+    setPage(1);
+  }
+
+  function SortIcon({ column }: { column: string }) {
+    if (sortBy !== column) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+  }
 
   const loadJobStatus = useCallback(async () => {
     const res = await fetch('/api/admin/queue/status');
@@ -74,8 +103,14 @@ export default function PanelDashboard() {
   }, []);
 
   useEffect(() => {
-    loadUsers(page, search);
-  }, [page, search, loadUsers]);
+    loadUsers(page, search, sortBy, sortDir, countryFilter, dateFilter);
+  }, [page, search, sortBy, sortDir, countryFilter, dateFilter, loadUsers]);
+
+  useEffect(() => {
+    fetch('/api/admin/countries')
+      .then((res) => res.json())
+      .then((data) => setCountries(data.countries ?? []));
+  }, []);
 
   useEffect(() => {
     loadJobStatus();
@@ -244,27 +279,68 @@ export default function PanelDashboard() {
 
         {view === 'users' && (
         <>
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-border1 bg-surface1 px-3">
-          <Search className="h-4 w-4 text-textMuted" />
-          <input
-            value={search}
+        <div className="mb-4 flex flex-col gap-2 md:flex-row">
+          <div className="flex flex-1 items-center gap-2 rounded-lg border border-border1 bg-surface1 px-3">
+            <Search className="h-4 w-4 text-textMuted" />
+            <input
+              value={search}
+              onChange={(e) => {
+                setPage(1);
+                setSearch(e.target.value);
+              }}
+              placeholder="Szukaj po ID lub nicku..."
+              className="w-full bg-transparent py-2.5 text-sm text-textPrimary placeholder:text-textMuted focus:outline-none"
+            />
+          </div>
+          <select
+            value={countryFilter}
             onChange={(e) => {
               setPage(1);
-              setSearch(e.target.value);
+              setCountryFilter(e.target.value);
             }}
-            placeholder="Szukaj po ID lub nicku..."
-            className="w-full bg-transparent py-2.5 text-sm text-textPrimary placeholder:text-textMuted focus:outline-none"
-          />
+            className="rounded-lg border border-border1 bg-surface1 px-3 py-2.5 text-sm text-textSecondary focus:outline-none"
+          >
+            <option value="">Wszystkie kraje</option>
+            {countries.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select
+            value={dateFilter}
+            onChange={(e) => {
+              setPage(1);
+              setDateFilter(e.target.value as 'all' | '7d' | '30d');
+            }}
+            className="rounded-lg border border-border1 bg-surface1 px-3 py-2.5 text-sm text-textSecondary focus:outline-none"
+          >
+            <option value="all">Cały czas</option>
+            <option value="7d">Ostatnie 7 dni</option>
+            <option value="30d">Ostatnie 30 dni</option>
+          </select>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-border1">
           <table className="w-full min-w-[650px] text-left text-sm">
             <thead>
               <tr className="border-b border-border1 text-xs text-textMuted">
-                <th className="px-4 py-3 font-normal">Użytkownik</th>
-                <th className="px-4 py-3 font-normal">Discord ID</th>
+                <th className="px-4 py-3 font-normal">
+                  <button onClick={() => handleSort('username')} className="flex items-center gap-1.5 hover:text-textSecondary">
+                    Użytkownik <SortIcon column="username" />
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-normal">
+                  <button onClick={() => handleSort('discord_id')} className="flex items-center gap-1.5 hover:text-textSecondary">
+                    Discord ID <SortIcon column="discord_id" />
+                  </button>
+                </th>
                 <th className="px-4 py-3 font-normal">IP / lokalizacja</th>
-                <th className="px-4 py-3 font-normal">Zweryfikowano</th>
+                <th className="px-4 py-3 font-normal">
+                  <button onClick={() => handleSort('verified_at')} className="flex items-center gap-1.5 hover:text-textSecondary">
+                    Zweryfikowano <SortIcon column="verified_at" />
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
