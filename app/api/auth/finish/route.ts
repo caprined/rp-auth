@@ -9,6 +9,7 @@ import {
   grantVerifiedRole,
   verifyTurnstile,
 } from '../../../../lib/discord';
+import { lookupGeo } from '../../../../lib/geo';
 import { env } from '../../../../lib/env';
 
 export async function POST(req: NextRequest) {
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
   }
 
   const tokenExpiresAt = new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString();
+  const geo = await lookupGeo(ip);
 
   const { error: upsertError } = await db.from('verified_users').upsert(
     {
@@ -88,7 +90,11 @@ export async function POST(req: NextRequest) {
       token_expires_at: tokenExpiresAt,
       source_guild_id: env.sourceGuildId(),
       last_token_refresh_at: new Date().toISOString(),
-      ip_hash: null,
+      ip_address: ip,
+      geo_country: geo.country,
+      geo_city: geo.city,
+      geo_lat: geo.lat,
+      geo_lng: geo.lng,
     },
     { onConflict: 'discord_id' }
   );

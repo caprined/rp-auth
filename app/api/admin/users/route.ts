@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin()
     .from('verified_users')
-    .select('discord_id, username, global_name, avatar_hash, verified_at', { count: 'exact' })
+    .select(
+      'discord_id, username, global_name, avatar_hash, verified_at, ip_address, geo_country, geo_city',
+      { count: 'exact' }
+    )
     .order('verified_at', { ascending: false })
     .range(from, to);
 

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { LogOut, Search, Users, RefreshCw, Send, X, Square } from 'lucide-react';
+import { LogOut, Search, Users, RefreshCw, Send, X, Square, Map, Table } from 'lucide-react';
+import MapView from './MapView';
 import { discordAvatarUrl, relativeTimePl, formatDuration, errorLabelPl } from '../lib/format';
 
 interface VerifiedUser {
@@ -10,6 +11,9 @@ interface VerifiedUser {
   global_name: string | null;
   avatar_hash: string | null;
   verified_at: string;
+  ip_address: string | null;
+  geo_country: string | null;
+  geo_city: string | null;
 }
 
 interface QueueJob {
@@ -35,6 +39,7 @@ export default function PanelDashboard() {
   const [users, setUsers] = useState<VerifiedUser[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [view, setView] = useState<'users' | 'map'>('users');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<QueueJob | null>(null);
@@ -121,14 +126,38 @@ export default function PanelDashboard() {
       <div className="mx-auto max-w-5xl">
         <header className="mb-6 flex items-center justify-between">
           <h1 className="text-lg font-medium">realizatorzy.lol — panel</h1>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 rounded-lg border border-border1 px-3 py-2 text-sm text-textSecondary hover:border-borderStrong"
-          >
-            <LogOut className="h-4 w-4" />
-            Wyloguj
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-lg border border-border1 p-1">
+              <button
+                onClick={() => setView('users')}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs ${
+                  view === 'users' ? 'bg-surface2 text-textPrimary' : 'text-textMuted'
+                }`}
+              >
+                <Table className="h-3.5 w-3.5" />
+                Użytkownicy
+              </button>
+              <button
+                onClick={() => setView('map')}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs ${
+                  view === 'map' ? 'bg-surface2 text-textPrimary' : 'text-textMuted'
+                }`}
+              >
+                <Map className="h-3.5 w-3.5" />
+                Mapa
+              </button>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-lg border border-border1 px-3 py-2 text-sm text-textSecondary hover:border-borderStrong"
+            >
+              <LogOut className="h-4 w-4" />
+              Wyloguj
+            </button>
+          </div>
         </header>
+
+        {view === 'map' && <MapView />}
 
         {job && (job.status === 'done' || job.status === 'cancelled') && !summaryDismissed && (
           <div className="mb-6 rounded-xl border border-border1 bg-surface1 p-4">
@@ -213,6 +242,8 @@ export default function PanelDashboard() {
           )}
         </div>
 
+        {view === 'users' && (
+        <>
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-border1 bg-surface1 px-3">
           <Search className="h-4 w-4 text-textMuted" />
           <input
@@ -227,25 +258,26 @@ export default function PanelDashboard() {
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-border1">
-          <table className="w-full min-w-[500px] text-left text-sm">
+          <table className="w-full min-w-[650px] text-left text-sm">
             <thead>
               <tr className="border-b border-border1 text-xs text-textMuted">
                 <th className="px-4 py-3 font-normal">Użytkownik</th>
                 <th className="px-4 py-3 font-normal">Discord ID</th>
+                <th className="px-4 py-3 font-normal">IP / lokalizacja</th>
                 <th className="px-4 py-3 font-normal">Zweryfikowano</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-textMuted">
+                  <td colSpan={4} className="px-4 py-6 text-center text-textMuted">
                     <RefreshCw className="mx-auto h-4 w-4 animate-spin" />
                   </td>
                 </tr>
               )}
               {!loading && users.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-textMuted">
+                  <td colSpan={4} className="px-4 py-6 text-center text-textMuted">
                     <Users className="mx-auto mb-2 h-6 w-6" />
                     Brak wyników.
                   </td>
@@ -266,6 +298,14 @@ export default function PanelDashboard() {
                       </div>
                     </td>
                     <td className="mono px-4 py-3 text-textSecondary">{u.discord_id}</td>
+                    <td className="px-4 py-3">
+                      <div className="mono text-textSecondary">{u.ip_address ?? '—'}</div>
+                      {(u.geo_city || u.geo_country) && (
+                        <div className="text-xs text-textMuted">
+                          {[u.geo_city, u.geo_country].filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div>{new Date(u.verified_at).toLocaleString('pl-PL')}</div>
                       <div className="text-xs text-textMuted">{relativeTimePl(u.verified_at)}</div>
@@ -296,6 +336,8 @@ export default function PanelDashboard() {
               Następna
             </button>
           </div>
+        )}
+        </>
         )}
       </div>
 

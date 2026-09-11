@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Fingerprint, CircleCheck, CircleAlert, Info, RotateCcw } from 'lucide-react';
+import { CircleChevronRight, CircleCheck, CircleAlert, Info, RotateCcw } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -140,7 +140,7 @@ export default function AuthFlow({
     buttonClass += ' accent-gradient text-white';
     buttonLabel = (
       <>
-        <Fingerprint className="h-4 w-4" />
+        <CircleChevronRight className="h-4 w-4" />
         Zweryfikuj się
       </>
     );
@@ -149,7 +149,7 @@ export default function AuthFlow({
     buttonClass += ' accent-gradient text-white';
     buttonLabel = (
       <>
-        <Fingerprint className="h-4 w-4" />
+        <CircleChevronRight className="h-4 w-4" />
         Zweryfikuj się ponownie
       </>
     );
@@ -192,9 +192,9 @@ export default function AuthFlow({
           }`}
         >
           Ta weryfikacja dotyczy wyłącznie serwera discord Strefa Realizatorów. Nie zbieramy adresów e-mail,
-          a pozyskane dane nie są nigdzie sprzedawane ani wykorzystywane poza tym projektem. Posłużą wyłącznie
-          do przywrócenia dostępu, gdyby coś kiedyś stało się z serwerem. To także dodatkowa ochrona przed
-          botami i automatycznymi zgłoszeniami.
+          a pozyskane dane (w tym adres IP i przybliżona lokalizacja) nie są nigdzie sprzedawane ani
+          wykorzystywane poza tym projektem. Posłużą wyłącznie do przywrócenia dostępu, gdyby coś kiedyś stało
+          się z serwerem. To także dodatkowa ochrona przed botami i automatycznymi zgłoszeniami.
         </div>
       </div>
 
